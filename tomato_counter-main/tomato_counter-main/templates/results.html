@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tomato Counter - Results</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container.result {
+            max-width: 1200px;
+            margin: 40px auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .total {
+            font-size: 1.5rem;
+            background: #d32f2f;
+            color: white;
+            padding: 10px 25px;
+            border-radius: 30px;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+
+        /* Clean, controlled grid */
+        .gallery {
+            display: grid;
+            
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+            padding: 15px;
+            transition: transform 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card img {
+    width: 100%;
+    height: auto;           /* let height adjust naturally */
+    max-height: 200px;      /* but don't exceed 200px */
+    object-fit: contain;    /* ensure full image is visible, possibly with bars */
+    border-radius: 6px;
+    background-color: #f0f0f0; /* optional: shows empty space if image is smaller */
+}
+
+        .card p {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 30px;
+            text-decoration: none;
+            color: #1976d2;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="result-page">
+    <div class="container result">
+        <h2>🍅 Tomato Counter – Results</h2>
+        <div class="total">Total Tomatoes: {{ total_count }}</div>
+
+        <div class="gallery">
+            {% for item in results %}
+            <div class="card">
+                <img src="{{ item.image_url }}" alt="Tomato detection">
+                <p>{{ item.label }}</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <a href="{{ url_for('index') }}">← Upload more</a>
+    </div>
+</body>
+</html>

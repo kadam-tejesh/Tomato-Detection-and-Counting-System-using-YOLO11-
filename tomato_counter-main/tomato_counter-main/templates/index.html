@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Tomato Counter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* Loading overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .benefit-box {
+            text-align: center;
+            max-width: 600px;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .benefit-text {
+            font-size: 1.8rem;
+            color: #d32f2f;
+            margin: 1rem 0;
+            min-height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease-in-out;
+            opacity: 1;
+        }
+        .benefit-text.fade-out {
+            opacity: 0;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d32f2f;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .error-message {
+            color: #c62828;
+            margin-top: 1rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>🍅 Tomato Counter</h2>
+
+        <!-- Flash messages (for non-AJAX errors) -->
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                {% for message in messages %}
+                    <li>{{ message }}</li>
+                {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <div class="upload-group">
+                <label for="file">Upload a single JPG image:</label>
+                <input type="file" name="file" id="file" accept=".jpg,.jpeg" onchange="clearOther('file')">
+            </div>
+
+            <div class="upload-group">
+                <label for="folder">Upload a folder (only JPG files):</label>
+                <input type="file" name="folder" id="folder" webkitdirectory directory multiple onchange="clearOther('folder')">
+                <small>Select any folder – only non‑empty JPGs will be accepted.</small>
+            </div>
+
+            <button type="submit">Submit</button>
+        </form>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="benefit-box">
+            <div class="spinner"></div>
+            <div id="benefitText" class="benefit-text">🍅 Rich in lycopene</div>
+            <p>Processing your images...</p>
+            <div id="errorMessage" class="error-message"></div>
+        </div>
+    </div>
+
+    <script>
+        // Tomato benefits array
+        const benefits = [
+            "🍅 Rich in lycopene, an antioxidant that may reduce cancer risk",
+            "🍅 Excellent source of vitamin C for immune health",
+            "🍅 High in potassium, good for heart health",
+            "🍅 Contains vitamin K for bone health",
+            "🍅 Low in calories, great for weight management",
+            "🍅 Provides beta-carotene for eye health",
+            "🍅 May improve skin health and reduce sun damage",
+            "🍅 Contains folate, important for cell division",
+            "🍅 Helps regulate blood pressure",
+            "🍅 Versatile and delicious in many dishes"
+        ];
+
+        let currentBenefitIndex = 0;
+        let benefitInterval;
+        const benefitElement = document.getElementById('benefitText');
+
+        function rotateBenefit() {
+            benefitElement.classList.add('fade-out');
+            setTimeout(() => {
+                currentBenefitIndex = (currentBenefitIndex + 1) % benefits.length;
+                benefitElement.textContent = benefits[currentBenefitIndex];
+                benefitElement.classList.remove('fade-out');
+            }, 500); // match transition duration
+        }
+
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            // Start rotating benefits
+            benefitElement.textContent = benefits[0];
+            benefitElement.classList.remove('fade-out');
+            benefitInterval = setInterval(rotateBenefit, 3000);
+        }
+
+        function hideLoading() {
+            clearInterval(benefitInterval);
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        function showError(message) {
+            document.getElementById('errorMessage').textContent = message;
+            // Keep overlay visible with error, but stop rotating? Let's keep rotating.
+            // Could add a close button, but for simplicity we'll keep overlay and allow user to go back manually.
+        }
+
+        // Clear other input when one is selected
+        function clearOther(changedId) {
+            if (changedId === 'file') {
+                document.getElementById('folder').value = '';
+            } else if (changedId === 'folder') {
+                document.getElementById('file').value = '';
+            }
+        }
+
+        // Handle form submission with AJAX
+        document.getElementById('uploadForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            // Final check: ensure not both are filled
+            const fileInput = document.getElementById('file');
+            const folderInput = document.getElementById('folder');
+            if (fileInput.files.length > 0 && folderInput.files.length > 0) {
+                alert('Please select only one: either a single file or a folder, not both.');
+                return;
+            }
+
+            // Show loading overlay
+            showLoading();
+
+            // Prepare FormData
+            const formData = new FormData(this);
+
+            try {
+                const response = await fetch('/process_upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Redirect to results page
+                    window.location.href = '/results';
+                } else {
+                    // Show error in overlay
+                    showError(result.error);
+                    // Optionally hide after a few seconds? For now keep visible.
+                }
+            } catch (error) {
+                showError('Network error. Please try again.');
+            }
+        });
+    </script>
+</body>
+</html>
